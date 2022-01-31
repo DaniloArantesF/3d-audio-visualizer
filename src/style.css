@@ -6,9 +6,20 @@
 }
 
 :root {
+  width: 100vw;
+  height: 100vh;
+}
 
+body {
+  overscroll-behavior: none; /* No scroll chaining occurs to neighboring scrolling areas, and default scroll overflow behavior is prevented. */
 }
 
 #app {
+}
 
+/* Canvas */
+#app_view {
+  display: block;
+  top: 0;
+  left: 0;
 }

@@ -9,5 +9,10 @@
   "devDependencies": {
     "typescript": "^4.4.4",
     "vite": "^2.7.2"
+  },
+  "dependencies": {
+    "@types/three": "^0.137.0",
+    "three": "^0.137.5",
+    "vite-plugin-string": "^1.1.2"
   }
 }
