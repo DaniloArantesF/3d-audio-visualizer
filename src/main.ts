@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import PickHelper from './PickHelper';
 import vertexShader from './shaders/vertex.glsl';
 import fragmentShader from './shaders/fragment.glsl';
 import './style.css';
@@ -39,24 +40,15 @@ const App = () => {
 
   // Add grid and mouse controls
   const gridHelper = new THREE.GridHelper(200, 50);
+  const pickHelper = new PickHelper();
   scene.add(gridHelper);
   const controls = new OrbitControls(camera, renderer.domElement);
 
-  function init() {
-    const geometry = new THREE.BoxGeometry(10, 1, 10);
-    const material = new THREE.ShaderMaterial({
-      uniforms: uniforms,
-      vertexShader,
-      fragmentShader,
-    });
-    const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
-    sphere.position.set(0, 10, 0);
-    render();
-  }
 
   function setupCanvasEvents() {
-    const canvasContainer = document.getElementById('app_view') as HTMLCanvasElement;
+    const canvasContainer = document.getElementById(
+      'app_view'
+    ) as HTMLCanvasElement;
 
     canvasContainer.addEventListener('mousemove', (event) => {
       uniforms.u_mouse.value.x = event.clientX;
@@ -77,16 +69,27 @@ const App = () => {
       );
       camera.position.set(15, 25, 0);
     });
-  };
+  }
+  function init() {
+    const geometry = new THREE.BoxGeometry(10, 1, 10);
+    const material = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader,
+      fragmentShader,
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+    sphere.position.set(0, 10, 0);
+    render();
+  }
 
   function render() {
-    requestAnimationFrame(render);
     uniforms.u_time.value = clock.getElapsedTime();
-
-    //pickHelper.pick(scene, camera, time);
+    pickHelper.pick(scene, camera);
     controls.update();
     renderer.render(scene, camera);
-  };
+    requestAnimationFrame(render);
+  }
 
   setupCanvasEvents();
   init();

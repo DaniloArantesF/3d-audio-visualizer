@@ -8,7 +8,6 @@ void main() {
   float y = st.x;
 
   vec3 color = vec3(y);
-  color = vec3(1.0,1.0,0.0);
-
+  color = vec3(1.0, 1.0, 1.0);
 	gl_FragColor = vec4(color,1.0);
 }
