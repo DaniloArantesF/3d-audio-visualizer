@@ -3,11 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>audio visualiser 2.0</title>
+    <title>3D Audio Visualizer</title>
   </head>
   <body>
     <div id="app">
-      <audio id="audio" src="./song.mp3" autoplay></audio>
+      <div class="controls">
+        <input type="file" id="fileIn" />
+        <button id="load-default">Load Sample Song</button>
+      </div>
       <canvas id="app_view"></canvas>
     </div>
     <script type="module" src="/src/main.ts"></script>

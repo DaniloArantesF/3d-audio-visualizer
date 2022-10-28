@@ -1,5 +1,6 @@
-
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
@@ -15,11 +16,36 @@ body {
 }
 
 #app {
+  position: relative;
+  width: 100%;
+  height: 100vh;
 }
 
 /* Canvas */
-#app_view {
-  display: block;
+canvas {
+  position: absolute;
+  width: 100%;
+  height: 100vh;
   top: 0;
   left: 0;
+}
+
+.controls {
+  width: 100vw;
+  padding: 1rem 2rem;
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  display: flex;
+  z-index: 99;
+}
+
+audio {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
 }

@@ -1,18 +1,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import PickHelper from './PickHelper';
 import vertexShader from './shaders/vertex.vs.glsl';
 import fragmentShader from './shaders/fragment.fs.glsl';
 import './style.css';
 
 const App = () => {
-  let audioContext: AudioContext, audioElement:HTMLAudioElement, analyser: AnalyserNode, source: MediaElementAudioSourceNode;
+  let audioContext: AudioContext,
+    analyser: AnalyserNode,
+    source: MediaElementAudioSourceNode;
   let dataArray = new Uint8Array();
+  const audio = new Audio();
+  const container = document.getElementById('app');
+  container?.appendChild(audio);
 
   const fov = 75;
   const aspect = window.innerWidth / window.innerHeight;
   const near = 0.1;
   const far = 1000;
+  const meshSegments = 128;
   const uniforms = {
     u_resolution: {
       value: new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -23,12 +28,12 @@ const App = () => {
       value: 0.0,
     },
     u_mouse: { value: { x: 0, y: 0 } },
-    u_data_arr: { type: "float[64]", value: dataArray, },
-    u_amplitude: { value: 1.5 }
+    u_data_arr: { type: `float[${meshSegments}]`, value: dataArray },
+    u_amplitude: { value: 1.5 },
   };
   const scene = new THREE.Scene();
   const renderer = new THREE.WebGLRenderer({
-    canvas: document.querySelector('#app_view') as HTMLCanvasElement,
+    canvas: document.querySelector('canvas') as HTMLCanvasElement,
     antialias: true,
   });
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -36,49 +41,78 @@ const App = () => {
 
   const clock = new THREE.Clock();
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(25, 80, 0);
+  camera.position.set(0, 200, 0);
 
   // Parent camera to obj so we can spin the object and move camera
   const cameraPole = new THREE.Object3D();
   scene.add(cameraPole);
   cameraPole.add(camera);
 
-  // Add grid and mouse controls
-  const gridHelper = new THREE.GridHelper(200, 50);
-  const pickHelper = new PickHelper();
-  //scene.add(gridHelper);
+  // Add mouse controls
   const controls = new OrbitControls(camera, renderer.domElement);
 
-  function setupCanvasEvents() {
+  function setupEvents() {
     const canvasContainer = document.getElementById(
-      'app_view'
+      'app_view',
     ) as HTMLCanvasElement;
+
+    // Handle file upload
+    const fileInput = document.getElementById('fileIn');
+    fileInput?.addEventListener('change', async function (event) {
+      const el = event.target as HTMLInputElement;
+      if (el && el.files) {
+        const file = el.files[0];
+        audio.src = URL.createObjectURL(file);
+        audio.load();
+      }
+    });
+
+    // Setup audio context when file is loaded
+    audio.onloadeddata = () => {
+      setupAudioContext();
+    };
+
+    audio.addEventListener('play', () => {
+      audioContext.resume();
+      audio.play();
+    });
 
     canvasContainer.addEventListener('mousemove', (event) => {
       uniforms.u_mouse.value.x = event.clientX;
       uniforms.u_mouse.value.y = event.clientY;
     });
 
+    const loadDefaultButton = document.getElementById('load-default');
+    loadDefaultButton?.addEventListener('click', () => {
+      loadDefaultSong();
+    });
+
     // Update canvas if window is resized
     document.addEventListener('resize', () => {
       renderer.setSize(
         canvasContainer.offsetWidth,
-        canvasContainer.offsetHeight
+        canvasContainer.offsetHeight,
       );
       const camera = new THREE.PerspectiveCamera(
         75,
         canvasContainer.offsetWidth / canvasContainer.offsetHeight,
         0.1,
-        1000
+        1000,
       );
-      camera.position.set(55, 25, 0);
+      camera.position.set(0, 25, 0);
     });
   }
 
   // play
   const init = () => {
-    setupAudioContext()
-    const geometry = new THREE.PlaneGeometry(64, 64, 64, 64);
+    audio.controls = true;
+
+    const geometry = new THREE.PlaneGeometry(
+      meshSegments / 2,
+      meshSegments / 2,
+      meshSegments,
+      meshSegments,
+    );
     const material = new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader,
@@ -87,38 +121,52 @@ const App = () => {
     });
     const planeMesh = new THREE.Mesh(geometry, material);
     planeMesh.rotation.x = Math.PI / 2;
-    planeMesh.scale.x = 2;
-    planeMesh.scale.y = 2;
-    planeMesh.scale.z = 2;
     planeMesh.position.y = 8;
     scene.add(planeMesh);
 
-    audioContext.resume()
     render();
-  }
+  };
 
   const setupAudioContext = () => {
     audioContext = new window.AudioContext();
-    audioElement = document.getElementById('audio') as HTMLAudioElement;
-    source = audioContext.createMediaElementSource(audioElement);
+    source = audioContext.createMediaElementSource(audio);
+
+    // exposes audio time and frequency data
     analyser = audioContext.createAnalyser();
+
+    // pipe audio source through analyzer
     source.connect(analyser);
+
+    // output audio to default speaker device
     analyser.connect(audioContext.destination);
-    analyser.fftSize = 2048;
+    analyser.fftSize = meshSegments * 4; // sampling rate
+
+    // array holding 8-bit integers representing frequencies
+    // analyser.frequencyBinCount is equal to fftSize / 2
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-  }
+    console.log(dataArray.length);
+  };
 
   const render = () => {
-    analyser.getByteFrequencyData(dataArray);
+    if (analyser) {
+      analyser.getByteFrequencyData(dataArray);
+    }
+
+    // Update uniforms
     uniforms.u_time.value = clock.getElapsedTime();
     uniforms.u_data_arr.value = dataArray;
-    pickHelper.pick(scene, camera);
+
     controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
-  }
+  };
 
-  setupCanvasEvents();
+  const loadDefaultSong = () => {
+    audio.src = './song.mp3';
+    audio.load();
+  };
+
+  setupEvents();
   init();
 };
 
