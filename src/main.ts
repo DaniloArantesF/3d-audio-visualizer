@@ -41,7 +41,8 @@ const App = () => {
 
   const clock = new THREE.Clock();
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 200, 0);
+  // camera.position.set(0, 30, 50);
+  camera.position.set(0, 60, 0);
 
   // Parent camera to obj so we can spin the object and move camera
   const cameraPole = new THREE.Object3D();
@@ -88,23 +89,16 @@ const App = () => {
     });
 
     // Update canvas if window is resized
-    document.addEventListener('resize', () => {
-      renderer.setSize(
-        canvasContainer.offsetWidth,
-        canvasContainer.offsetHeight,
-      );
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        canvasContainer.offsetWidth / canvasContainer.offsetHeight,
-        0.1,
-        1000,
-      );
-      camera.position.set(0, 25, 0);
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.position.set(0, 60, 0);
     });
   }
 
   // play
-  const init = () => {
+  function init() {
     audio.controls = true;
 
     const geometry = new THREE.PlaneGeometry(
@@ -125,9 +119,9 @@ const App = () => {
     scene.add(planeMesh);
 
     render();
-  };
+  }
 
-  const setupAudioContext = () => {
+  function setupAudioContext() {
     audioContext = new window.AudioContext();
     source = audioContext.createMediaElementSource(audio);
 
@@ -145,9 +139,9 @@ const App = () => {
     // analyser.frequencyBinCount is equal to fftSize / 2
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     console.log(dataArray.length);
-  };
+  }
 
-  const render = () => {
+  function render() {
     if (analyser) {
       analyser.getByteFrequencyData(dataArray);
     }
@@ -159,12 +153,12 @@ const App = () => {
     controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
-  };
+  }
 
-  const loadDefaultSong = () => {
+  function loadDefaultSong() {
     audio.src = './song.mp3';
     audio.load();
-  };
+  }
 
   setupEvents();
   init();
