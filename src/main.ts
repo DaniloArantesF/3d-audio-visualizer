@@ -42,7 +42,7 @@ const App = () => {
   const clock = new THREE.Clock();
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   // camera.position.set(0, 30, 50);
-  camera.position.set(0, 60, 0);
+  camera.position.set(0, 30, 40);
 
   // Parent camera to obj so we can spin the object and move camera
   const cameraPole = new THREE.Object3D();
@@ -93,7 +93,7 @@ const App = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.position.set(0, 60, 0);
+      camera.position.set(0, 30, 40);
     });
   }
 

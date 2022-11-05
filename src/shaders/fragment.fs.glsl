@@ -14,5 +14,5 @@ varying float z;
 
 void main() {
   float normalizedZ = abs(z / amplitude);
-  gl_FragColor = vec4(0.0, 0.0 -log(normalizedZ) -1.0, 1.0 -log(normalizedZ) -1.0, 1.0);
+  gl_FragColor = vec4(.8*(-log(normalizedZ) -1.0), 0.5 -log(normalizedZ) -1.0, 1.0 -log(normalizedZ) -1.0, 1.0);
 }
