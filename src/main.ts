@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import vertexShader from './shaders/vertex.vs.glsl';
 import fragmentShader from './shaders/fragment.fs.glsl';
 import './style.css';
 
 const App = () => {
+  // Audio
   let audioContext: AudioContext,
     analyser: AnalyserNode,
     source: MediaElementAudioSourceNode;
@@ -13,10 +17,42 @@ const App = () => {
   const container = document.getElementById('app');
   container?.appendChild(audio);
 
-  const fov = 75;
+  // Scene
+  const scene = new THREE.Scene();
   const aspect = window.innerWidth / window.innerHeight;
+  const fov = 75;
   const near = 0.1;
   const far = 1000;
+
+  // Renderer & Effect composer
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('canvas') as HTMLCanvasElement,
+    antialias: true,
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  // renderer.setClearColor(0x111111);
+  renderer.physicallyCorrectLights = true;
+  // renderer.outputEncoding = THREE.sRGBEncoding;
+
+  let renderScene;
+  const composer = new EffectComposer(renderer);
+
+  const clock = new THREE.Clock();
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  // camera.position.set(0, 30, 50);
+  camera.position.set(0, 50, 30);
+
+  // Parent camera to obj so we can spin the object and move camera
+  const cameraPole = new THREE.Object3D();
+  scene.add(cameraPole);
+  cameraPole.add(camera);
+
+  // Add mouse controls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  // controls.autoRotateSpeed = .5;
+
+  // variables
   const meshSegments = 128;
   const uniforms = {
     u_resolution: {
@@ -29,28 +65,8 @@ const App = () => {
     },
     u_mouse: { value: { x: 0, y: 0 } },
     u_data_arr: { type: `float[${meshSegments}]`, value: dataArray },
-    u_amplitude: { value: 1.5 },
+    u_amplitude: { value: 2.0 },
   };
-  const scene = new THREE.Scene();
-  const renderer = new THREE.WebGLRenderer({
-    canvas: document.querySelector('canvas') as HTMLCanvasElement,
-    antialias: true,
-  });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-  const clock = new THREE.Clock();
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  // camera.position.set(0, 30, 50);
-  camera.position.set(0, 30, 40);
-
-  // Parent camera to obj so we can spin the object and move camera
-  const cameraPole = new THREE.Object3D();
-  scene.add(cameraPole);
-  cameraPole.add(camera);
-
-  // Add mouse controls
-  const controls = new OrbitControls(camera, renderer.domElement);
 
   function setupEvents() {
     const canvasContainer = document.getElementById(
@@ -74,8 +90,13 @@ const App = () => {
     };
 
     audio.addEventListener('play', () => {
+      // controls.autoRotate = true;
       audioContext.resume();
       audio.play();
+    });
+
+    audio.addEventListener('pause', () => {
+      controls.autoRotate = false;
     });
 
     canvasContainer.addEventListener('mousemove', (event) => {
@@ -93,7 +114,7 @@ const App = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.position.set(0, 30, 40);
+      camera.position.set(0, 40, 40);
     });
   }
 
@@ -107,15 +128,21 @@ const App = () => {
       meshSegments,
       meshSegments,
     );
+
     const material = new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader,
       fragmentShader,
       wireframe: true,
+      blending: THREE.AdditiveBlending,
     });
-    const planeMesh = new THREE.Mesh(geometry, material);
+
+    const planeMesh = new THREE.Points(geometry, material);
+    // const planeMesh = new THREE.Mesh(geometry, material);
     planeMesh.rotation.x = Math.PI / 2;
     planeMesh.position.y = 8;
+    planeMesh.scale.x *= 2;
+    planeMesh.scale.y *= 2;
     scene.add(planeMesh);
 
     render();
@@ -138,7 +165,6 @@ const App = () => {
     // array holding 8-bit integers representing frequencies
     // analyser.frequencyBinCount is equal to fftSize / 2
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-    console.log(dataArray.length);
   }
 
   function render() {
@@ -150,8 +176,17 @@ const App = () => {
     uniforms.u_time.value = clock.getElapsedTime();
     uniforms.u_data_arr.value = dataArray;
 
+    if (!audio.paused) {
+      cameraPole.rotateY(0.001);
+      cameraPole.rotateZ(0.001);
+      cameraPole.position.x = -50 * Math.sin(audio.currentTime / 10);
+      cameraPole.position.z = 25 * Math.sin(audio.currentTime / 15);
+      cameraPole.position.y = 5 * (Math.sin(audio.currentTime / 10) + 1);
+    }
+
     controls.update();
-    renderer.render(scene, camera);
+    // renderer.render(scene, camera);
+    composer.render();
     requestAnimationFrame(render);
   }
 
@@ -160,7 +195,22 @@ const App = () => {
     audio.load();
   }
 
+  function postProcessing() {
+    renderScene = new RenderPass(scene, camera);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.3,
+      0.5,
+      0.01,
+    );
+
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+  }
+
   setupEvents();
+  postProcessing();
   init();
 };
 
